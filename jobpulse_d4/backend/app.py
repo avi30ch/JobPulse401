@@ -411,6 +411,8 @@ def octo_run_all():
     # 2) start each task (best-effort; if already running/completed, Octoparse typically no-ops)
     for tid in task_ids:
         try:
+            _octo_post("/api/task/RemoveDataByTaskId", params={"taskId": tid})
+            time.sleep(2)  # Give Octoparse time to commit the clear
             _octo_post("/api/task/StartTask", params={"taskId": tid})
         except Exception as e:
             print("StartTask error:", tid, e)
@@ -501,4 +503,4 @@ def octo_run_all():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=1834)
