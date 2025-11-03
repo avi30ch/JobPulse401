@@ -129,6 +129,35 @@ async function runAll(selectedOnly){
   }
 }
 
+function deselectAll() {
+  const boxes = document.querySelectorAll('#tasksList input[type="checkbox"]');
+  let n = 0;
+  boxes.forEach(cb => { if (cb.checked) { cb.checked = false; n++; } });
+  logln(`Deselected ${n} task(s).`);
+}
+
+window.addEventListener("DOMContentLoaded", async () => {
+  $("loginBtn").addEventListener("click", octoLogin);
+  $("reloadGroups").addEventListener("click", loadGroups);
+  $("groupSelect").addEventListener("change", loadTasks);
+  $("runAll").addEventListener("click", () => runAll(false));
+  $("runSelected").addEventListener("click", () => runAll(true));
+  $("deselectAll").addEventListener("click", deselectAll); // <-- add this
+
+  await octoLogin();
+  await loadGroups();
+});
+
+function selectAll() {
+  const boxes = document.querySelectorAll('#tasksList input[type="checkbox"]');
+  let n = 0;
+  boxes.forEach(cb => { if (!cb.checked) { cb.checked = true; n++; } });
+  logln(`Selected ${n} task(s).`);
+}
+
+$("selectAll").addEventListener("click", selectAll);
+
+
 window.addEventListener("DOMContentLoaded", async () => {
   $("loginBtn").addEventListener("click", octoLogin);
   $("reloadGroups").addEventListener("click", loadGroups);
