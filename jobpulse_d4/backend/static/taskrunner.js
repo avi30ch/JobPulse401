@@ -1,36 +1,40 @@
 const $ = (id) => document.getElementById(id);
 const api = (path, opts={}) => fetch(path, opts);
 
-function logln(s){ const el = $("logs"); el.textContent += s + "\n"; el.scrollTop = el.scrollHeight; }
+function logln(s) {
+  const el = $("logs");
+  el.textContent += s + "\n";
+  el.scrollTop = el.scrollHeight;
+}
 
-async function octoLogin(){
+async function octoLogin() {
   $("loginStatus").textContent = "Logging in...";
-  try{
+  try {
     const r = await api("/login");
     const j = await r.json();
-    if(r.ok && j.access_token){
+    if (r.ok && j.access_token) {
       $("loginStatus").textContent = "Logged in ✓ (token cached)";
       logln("Login OK");
       return true;
-    }else{
+    } else {
       $("loginStatus").textContent = "Login failed";
       logln("Login failed: " + JSON.stringify(j));
       return false;
     }
-  }catch(e){
+  } catch (e) {
     $("loginStatus").textContent = "Login error";
     logln("Login error: " + e);
     return false;
   }
 }
 
-async function loadGroups(){
+async function loadGroups() {
   $("groupSelect").innerHTML = "";
   const opt = document.createElement("option");
   opt.value = "";
   opt.textContent = "Loading...";
   $("groupSelect").appendChild(opt);
-  try{
+  try {
     const r = await api("/octo/task-groups");
     const j = await r.json();
     $("groupSelect").innerHTML = "";
@@ -40,20 +44,20 @@ async function loadGroups(){
       o.textContent = `${g.taskGroupName} (${g.taskGroupId})`;
       $("groupSelect").appendChild(o);
     });
-    if(($("groupSelect").options || []).length > 0){
+    if (($("groupSelect").options || []).length > 0) {
       await loadTasks();
     }
-  }catch(e){
+  } catch (e) {
     logln("Load groups error: " + e);
   }
 }
 
-async function loadTasks(){
+async function loadTasks() {
   const gid = $("groupSelect").value;
   const box = $("tasksList");
   box.innerHTML = "Loading...";
-  if(!gid){ box.textContent = "Pick a group"; return; }
-  try{
+  if (!gid) { box.textContent = "Pick a group"; return; }
+  try {
     const r = await api(`/octo/tasks?taskGroupId=${encodeURIComponent(gid)}`);
     const j = await r.json();
     box.innerHTML = "";
@@ -65,46 +69,44 @@ async function loadTasks(){
       cb.type = "checkbox"; cb.value = t.taskId; cb.checked = true;
       const label = document.createElement("label");
       label.textContent = `${t.taskName} (${t.taskId})`;
-      div.appendChild(cb); div.appendChild(label);
+      div.appendChild(cb);
+      div.appendChild(label);
       box.appendChild(div);
     });
-    if((j.data || []).length === 0){
+    if ((j.data || []).length === 0) {
       box.textContent = "No tasks in this group.";
     }
-  }catch(e){
+  } catch (e) {
     logln("Load tasks error: " + e);
   }
 }
 
-async function runAll(selectedOnly){
+async function runAll(selectedOnly) {
   const gid = $("groupSelect").value;
-  if(!gid){ alert("Pick a group first."); return; }
-  const offset = parseInt($("offset").value || "0", 10);
-  const size = parseInt($("size").value || "100", 10);
-  const waitSeconds = parseInt($("waitSeconds").value || "15", 10);
+  if (!gid) { alert("Pick a group first."); return; }
 
   let selectedTaskIds = null;
-  if(selectedOnly){
+  if (selectedOnly) {
     const ids = [];
     $("tasksList").querySelectorAll('input[type="checkbox"]').forEach(cb => {
-      if(cb.checked) ids.push(cb.value);
+      if (cb.checked) ids.push(cb.value);
     });
     selectedTaskIds = ids;
-    if(ids.length === 0) { alert("No tasks selected."); return; }
+    if (ids.length === 0) { alert("No tasks selected."); return; }
   }
 
   logln(`Running ${selectedOnly ? "selected" : "all"} tasks in group ${gid} ...`);
-  const body = { taskGroupId: parseInt(gid, 10), offset, size, waitSeconds };
-  if(selectedTaskIds) body.selectedTaskIds = selectedTaskIds;
+  const body = { taskGroupId: parseInt(gid, 10) };
+  if (selectedTaskIds) body.selectedTaskIds = selectedTaskIds;
 
-  try{
+  try {
     const r = await fetch("/octo/run-all", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
 
-    if(!r.ok){
+    if (!r.ok) {
       const err = await r.text();
       logln("Run error: " + err);
       alert("Run failed. Check logs.");
@@ -119,11 +121,14 @@ async function runAll(selectedOnly){
 
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = fname; document.body.appendChild(a);
-    a.click(); a.remove(); URL.revokeObjectURL(url);
+    a.href = url; a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
 
     logln("Export downloaded: " + fname);
-  }catch(e){
+  } catch (e) {
     logln("Run exception: " + e);
     alert("Run failed. Check logs.");
   }
@@ -136,18 +141,6 @@ function deselectAll() {
   logln(`Deselected ${n} task(s).`);
 }
 
-window.addEventListener("DOMContentLoaded", async () => {
-  $("loginBtn").addEventListener("click", octoLogin);
-  $("reloadGroups").addEventListener("click", loadGroups);
-  $("groupSelect").addEventListener("change", loadTasks);
-  $("runAll").addEventListener("click", () => runAll(false));
-  $("runSelected").addEventListener("click", () => runAll(true));
-  $("deselectAll").addEventListener("click", deselectAll); // <-- add this
-
-  await octoLogin();
-  await loadGroups();
-});
-
 function selectAll() {
   const boxes = document.querySelectorAll('#tasksList input[type="checkbox"]');
   let n = 0;
@@ -155,15 +148,14 @@ function selectAll() {
   logln(`Selected ${n} task(s).`);
 }
 
-$("selectAll").addEventListener("click", selectAll);
-
-
 window.addEventListener("DOMContentLoaded", async () => {
   $("loginBtn").addEventListener("click", octoLogin);
   $("reloadGroups").addEventListener("click", loadGroups);
   $("groupSelect").addEventListener("change", loadTasks);
   $("runAll").addEventListener("click", () => runAll(false));
   $("runSelected").addEventListener("click", () => runAll(true));
+  $("deselectAll").addEventListener("click", deselectAll);
+  $("selectAll").addEventListener("click", selectAll);
 
   // auto login & load on first paint (best-effort)
   await octoLogin();

@@ -75,6 +75,8 @@ token_mgr = TokenManager()
 
 # --- Helpers ---
 def _handle_response(res: requests.Response):
+    print("\n🔍 [DEBUG] Octoparse API response:")
+    print(res)
     """Convert requests.Response into Flask JSON or error."""
     if res.status_code != 200:
         return jsonify({"error": res.text}), res.status_code

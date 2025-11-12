@@ -379,6 +379,39 @@ def octo_tasks():
     # alias of /tasks but namespaced; front-end will use this
     return list_tasks()
 
+def wait_for_tasks(task_ids):
+    """
+    Wait until all Octoparse tasks reach 'Finished' or 'Stopped',
+    using the /cloudextraction/statuses/v2 endpoint.
+    """
+    import time, requests
+
+    url = "https://openapi.octoparse.com/cloudextraction/statuses/v2"
+
+    while True:
+        headers = {
+            "Authorization": f"Bearer {token_mgr.get_token()}",
+            "Content-Type": "application/json"
+        }
+
+        res = requests.post(url, json={"taskIds": task_ids}, headers=headers)
+        if res.status_code != 200:
+            print("Status check failed:", res.text)
+            time.sleep(5)
+            continue
+
+        data = res.json().get("data", [])
+        statuses = {d["taskId"]: d["status"] for d in data}
+        print(statuses)
+
+        # Stop when all tasks are done
+        if all(s in ("Finished", "Stopped") for s in statuses.values()):
+            print("✅ All tasks finished.")
+            break
+
+        time.sleep(5)  # respect 1 request / 5 seconds limit
+
+
 @app.post("/octo/run-all")
 def octo_run_all():
     """
@@ -390,9 +423,8 @@ def octo_run_all():
     if not task_group_id:
         return jsonify({"error": "taskGroupId is required"}), 400
 
-    offset = int(body.get("offset", 0))
-    size = int(body.get("size", 100))
-    wait_seconds = int(body.get("waitSeconds", 15))
+    offset = 0
+    size = 1000
     selected_ids = body.get("selectedTaskIds")  # optional list
 
     # 1) fetch tasks in the group
@@ -417,20 +449,8 @@ def octo_run_all():
         except Exception as e:
             print("StartTask error:", tid, e)
 
-    # 3) best-effort short wait/poll for status (don’t block forever)
-    #    If Advanced plan is not available, this may fail; ignore errors and proceed to data fetch.
-    if wait_seconds > 0:
-        import math, time as _t
-        end_at = time.time() + wait_seconds
-        while time.time() < end_at:
-            try:
-                st = _octo_post("/api/task/GetTaskStatusByIdList", json_body={"taskIdList": task_ids})
-                if st.status_code == 200:
-                    # You could parse statuses here and break early if all "Completed"
-                    pass
-            except Exception as e:
-                print("Status poll error:", e)
-            _t.sleep(2)
+    print("Polling until all tasks are complete...")
+    wait_for_tasks(task_ids)
 
     # 4) fetch data per task by offset paging
     #    We'll build an Excel workbook with one sheet per taskName.
@@ -503,4 +523,4 @@ def octo_run_all():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=1112)
