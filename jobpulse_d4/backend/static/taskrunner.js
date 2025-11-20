@@ -41,7 +41,7 @@ async function loadGroups() {
     (j.data || []).forEach(g => {
       const o = document.createElement("option");
       o.value = g.taskGroupId;
-      o.textContent = `${g.taskGroupName} (${g.taskGroupId})`;
+      o.textContent = `${g.taskGroupName}`;
       $("groupSelect").appendChild(o);
     });
     if (($("groupSelect").options || []).length > 0) {
@@ -68,7 +68,7 @@ async function loadTasks() {
       const cb = document.createElement("input");
       cb.type = "checkbox"; cb.value = t.taskId; cb.checked = true;
       const label = document.createElement("label");
-      label.textContent = `${t.taskName} (${t.taskId})`;
+      label.textContent = `${t.taskName}`;
       div.appendChild(cb);
       div.appendChild(label);
       box.appendChild(div);
